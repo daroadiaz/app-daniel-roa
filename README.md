@@ -46,9 +46,42 @@ Además de la app, la tienda de desarrollo quedó modernizada de punta a punta:
 
 - **Tema Horizon** (la generación más reciente de temas de Shopify, con theme blocks, quick-add al carrito, búsqueda predictiva y CSS/JS de última generación) publicado como tema activo.
 - **Homepage con branding**: announcement bar, hero "Lobo Creaciones: diseño que aúlla" y CTA "Ver catálogo" en español.
-- **Colección automática "Lobo Creaciones"** (condición: vendor = Lobo Creaciones) que agrupa todo el catálogo de la marca y se mantiene sola al agregar productos.
-- **SEO / posicionamiento**: título de homepage y meta descripción optimizados, hreflang automático y redirección por país/región activados, hCaptcha en formularios.
+- **Colección automática "Lobo Creaciones"** (condición: vendor = Lobo Creaciones, 2.151 productos) con descripción indexable y ficha SEO propia; enlazada desde el menú principal.
+- **Navegación en español**: Inicio · Catálogo · Contacto · Lobo Creaciones.
 - La tienda está en modo desarrollo: se accede con la contraseña del storefront configurada en Preferences.
+
+### Identidad visual (extraída de lobocreaciones.com)
+
+Se escrapeó el sitio oficial de la agencia para replicar su sistema de diseño en la tienda:
+
+| Token | Valor | Uso |
+| --- | --- | --- |
+| Azul noche | `#011624` | Color dominante: announcement bar, titulares, hover de botones |
+| Teal | `#24677C` | Botones primarios, precios, variantes seleccionadas |
+| Turquesa | `#3EC4BC` | Acentos de interacción (coincide con el logo del lobo del catálogo) |
+| Fondo claro | `#F7F8F8` / blanco | Superficies |
+| Tipografía títulos | **Poppins** | Headings del tema |
+| Tipografía cuerpo | **DM Sans** | Texto base |
+
+Implementación: paleta vía **Custom CSS** del tema (sobrescribiendo las variables nativas de Horizon `--color-primary-button-*`, `--color-selected-variant-*`, etc.) y tipografías desde los ajustes nativos de Typography — sin tocar el código del tema, por lo que sobrevive a actualizaciones de Horizon.
+
+### SEO / posicionamiento
+
+**On-page (verificado en el HTML servido):**
+- `<title>` de homepage: "Lobo Creaciones — Tienda oficial | Productos artesanales y creativos" (68/70 caracteres).
+- Meta descripción de 146 caracteres con propuesta de valor y CTA.
+- **Open Graph completo**: `og:title`, `og:url` y `og:image` 1200×628 (imagen social oficial de la marca) para compartir en redes.
+- `link rel="canonical"` correcto y JSON-LD `Organization` (Horizon agrega `Product` + `BreadcrumbList` en fichas de producto).
+- Ficha SEO dedicada para la colección: título 50/70 y meta descripción 131/160, URL limpia `/collections/lobo-creaciones`.
+- Contenido indexable en la colección (descripción con keywords de marca).
+
+**Técnico:**
+- `robots.txt` operativo (Shopify lo genera y expone además el endpoint UCP/MCP para agentes de compra).
+- Hreflang automático y redirección por país/región activados (Markets).
+- hCaptcha en formularios (evita spam que degrada señales de calidad).
+- Interlinking: menú principal → colección; colección → productos; breadcrumbs del tema.
+
+**Limitación conocida**: mientras la tienda esté en modo desarrollo (password activa), Google no puede rastrearla y `sitemap.xml` no se publica — es el comportamiento estándar de las dev stores. Todo el SEO queda configurado para ser efectivo desde el momento en que se quite la contraseña con un plan activo.
 
 ## Desarrollo local
 
