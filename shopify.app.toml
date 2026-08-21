@@ -24,5 +24,4 @@ scopes = "read_products"
 redirect_urls = [ "https://app-daniel-roa-649998503509.us-central1.run.app/auth/callback", "https://app-daniel-roa-649998503509.us-central1.run.app/auth/login", "https://app-daniel-roa-649998503509.us-central1.run.app/api/auth" ]
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true
