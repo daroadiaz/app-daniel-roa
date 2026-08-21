@@ -40,6 +40,16 @@ app/
 - **UI**: `IndexTable` de Polaris con imagen, estado (badge), inventario, tipo, proveedor y rango de precios formateado con `Intl.NumberFormat`; búsqueda client-side y `EmptyState` para catálogo vacío o búsqueda sin resultados.
 - **Sesiones**: la estrategia embebida de `shopify-app-remix` usa token exchange, por lo que el storage SQLite puede ser efímero en hosting free-tier sin romper la app.
 
+## Tienda online (daniel-roa.myshopify.com)
+
+Además de la app, la tienda de desarrollo quedó modernizada de punta a punta:
+
+- **Tema Horizon** (la generación más reciente de temas de Shopify, con theme blocks, quick-add al carrito, búsqueda predictiva y CSS/JS de última generación) publicado como tema activo.
+- **Homepage con branding**: announcement bar, hero "Lobo Creaciones: diseño que aúlla" y CTA "Ver catálogo" en español.
+- **Colección automática "Lobo Creaciones"** (condición: vendor = Lobo Creaciones) que agrupa todo el catálogo de la marca y se mantiene sola al agregar productos.
+- **SEO / posicionamiento**: título de homepage y meta descripción optimizados, hreflang automático y redirección por país/región activados, hCaptcha en formularios.
+- La tienda está en modo desarrollo: se accede con la contraseña del storefront configurada en Preferences.
+
 ## Desarrollo local
 
 Requisitos: Node ≥ 22.12, cuenta Shopify Partners con acceso a la app.
