@@ -1,12 +1,19 @@
-import { useMemo, useState } from "react";
-import { useLoaderData } from "@remix-run/react";
+import { useEffect, useState } from "react";
+import {
+  useLoaderData,
+  useNavigation,
+  useSearchParams,
+} from "@remix-run/react";
 import {
   Badge,
   BlockStack,
+  Box,
   Card,
   EmptyState,
   IndexTable,
+  InlineStack,
   Page,
+  Pagination,
   Text,
   TextField,
   Thumbnail,
@@ -14,16 +21,20 @@ import {
 import { ImageIcon } from "@shopify/polaris-icons";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
-import { getAllProducts } from "../services/products.server";
+import { getProductsPage } from "../services/products.server";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
-  const products = await getAllProducts(admin);
+  const url = new URL(request.url);
 
-  return { products };
+  return getProductsPage(admin, {
+    after: url.searchParams.get("after"),
+    before: url.searchParams.get("before"),
+    query: url.searchParams.get("q"),
+  });
 };
 
-const STATUS_TONE = {
+const STATUS_BADGE = {
   ACTIVE: { tone: "success", label: "Activo" },
   DRAFT: { tone: "info", label: "Borrador" },
   ARCHIVED: { tone: undefined, label: "Archivado" },
@@ -42,53 +53,63 @@ function formatPrice({ minVariantPrice, maxVariantPrice }) {
 }
 
 export default function ProductsPage() {
-  const { products } = useLoaderData();
-  const [query, setQuery] = useState("");
+  const { products, pageInfo, totalCount } = useLoaderData();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigation = useNavigation();
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
 
-  const filtered = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return products;
-    return products.filter(({ title, vendor, productType }) =>
-      [title, vendor, productType].some((field) =>
-        field?.toLowerCase().includes(term),
-      ),
-    );
-  }, [products, query]);
+  // Búsqueda server-side con debounce: al cambiar el término se reinician
+  // los cursores para volver a la primera página del resultado.
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      const current = searchParams.get("q") ?? "";
+      if (query === current) return;
+      setSearchParams(query ? { q: query } : {}, { replace: true });
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [query, searchParams, setSearchParams]);
 
-  const resourceName = { singular: "producto", plural: "productos" };
+  const paginate = (params) =>
+    setSearchParams({
+      ...(query ? { q: query } : {}),
+      ...params,
+    });
+
+  const isLoading = navigation.state === "loading";
 
   return (
     <Page fullWidth>
       <TitleBar title="Productos" />
       <BlockStack gap="400">
         <Card padding="0">
-          <div style={{ padding: "var(--p-space-400)" }}>
+          <Box padding="400">
             <TextField
               label="Buscar productos"
               labelHidden
-              placeholder="Buscar por título, proveedor o tipo…"
+              placeholder="Buscar por título…"
               value={query}
               onChange={setQuery}
               autoComplete="off"
               clearButton
               onClearButtonClick={() => setQuery("")}
+              loading={isLoading}
             />
-          </div>
-          {filtered.length === 0 ? (
+          </Box>
+          {products.length === 0 ? (
             <EmptyState
               heading="No se encontraron productos"
               image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
             >
               <p>
-                {products.length === 0
-                  ? "La tienda aún no tiene productos."
-                  : "Prueba con otro término de búsqueda."}
+                {searchParams.get("q")
+                  ? "Prueba con otro término de búsqueda."
+                  : "La tienda aún no tiene productos."}
               </p>
             </EmptyState>
           ) : (
             <IndexTable
-              resourceName={resourceName}
-              itemCount={filtered.length}
+              resourceName={{ singular: "producto", plural: "productos" }}
+              itemCount={products.length}
               selectable={false}
               headings={[
                 { title: "" },
@@ -100,8 +121,8 @@ export default function ProductsPage() {
                 { title: "Precio" },
               ]}
             >
-              {filtered.map((product, index) => {
-                const status = STATUS_TONE[product.status] ?? {
+              {products.map((product, index) => {
+                const status = STATUS_BADGE[product.status] ?? {
                   label: product.status,
                 };
 
@@ -129,7 +150,9 @@ export default function ProductsPage() {
                     <IndexTable.Cell>
                       {product.totalInventory ?? 0} disponibles
                     </IndexTable.Cell>
-                    <IndexTable.Cell>{product.productType || "—"}</IndexTable.Cell>
+                    <IndexTable.Cell>
+                      {product.productType || "—"}
+                    </IndexTable.Cell>
                     <IndexTable.Cell>{product.vendor || "—"}</IndexTable.Cell>
                     <IndexTable.Cell>
                       {formatPrice(product.priceRange)}
@@ -139,10 +162,20 @@ export default function ProductsPage() {
               })}
             </IndexTable>
           )}
+          <Box padding="400" borderBlockStartWidth="025" borderColor="border">
+            <InlineStack align="center">
+              <Pagination
+                hasPrevious={pageInfo.hasPreviousPage}
+                onPrevious={() => paginate({ before: pageInfo.startCursor })}
+                hasNext={pageInfo.hasNextPage}
+                onNext={() => paginate({ after: pageInfo.endCursor })}
+              />
+            </InlineStack>
+          </Box>
         </Card>
         <Text as="p" tone="subdued" alignment="center" variant="bodySm">
-          {filtered.length} de {products.length} productos · datos en vivo desde
-          la Admin GraphQL API
+          {totalCount} productos en total · datos en vivo desde la Admin
+          GraphQL API
         </Text>
       </BlockStack>
     </Page>

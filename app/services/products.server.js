@@ -1,10 +1,28 @@
-const PRODUCTS_PAGE_SIZE = 100;
+const PAGE_SIZE = 50;
 
-const PRODUCTS_QUERY = `#graphql
-  query ListProducts($first: Int!, $after: String) {
-    products(first: $first, after: $after, sortKey: TITLE) {
+const PRODUCTS_PAGE_QUERY = `#graphql
+  query ProductsPage(
+    $first: Int
+    $last: Int
+    $after: String
+    $before: String
+    $query: String
+  ) {
+    productsCount(query: $query) {
+      count
+    }
+    products(
+      first: $first
+      last: $last
+      after: $after
+      before: $before
+      query: $query
+      sortKey: TITLE
+    ) {
       pageInfo {
         hasNextPage
+        hasPreviousPage
+        startCursor
         endCursor
       }
       nodes {
@@ -39,37 +57,34 @@ const PRODUCTS_QUERY = `#graphql
 `;
 
 /**
- * Trae TODOS los productos de la tienda paginando por cursor,
- * y los aplana a la forma que consume la UI.
+ * Página de productos con paginación por cursor (50 por página), búsqueda
+ * server-side y total real del catálogo. Con catálogos grandes (miles de
+ * productos) esto evita el rate-limit de la Admin API y mantiene la carga
+ * constante, igual que el listado nativo del admin de Shopify.
  */
-export async function getAllProducts(admin) {
-  const products = [];
-  let after = null;
+export async function getProductsPage(admin, { after, before, query } = {}) {
+  const variables = {
+    query: query || null,
+    ...(before ? { last: PAGE_SIZE, before } : { first: PAGE_SIZE, after: after || null }),
+  };
 
-  do {
-    const response = await admin.graphql(PRODUCTS_QUERY, {
-      variables: { first: PRODUCTS_PAGE_SIZE, after },
-    });
-    const { data } = await response.json();
-    const { nodes, pageInfo } = data.products;
+  const response = await admin.graphql(PRODUCTS_PAGE_QUERY, { variables });
+  const { data } = await response.json();
 
-    products.push(
-      ...nodes.map((node) => ({
-        id: node.id,
-        title: node.title,
-        handle: node.handle,
-        status: node.status,
-        vendor: node.vendor,
-        productType: node.productType,
-        totalInventory: node.totalInventory,
-        imageUrl: node.featuredMedia?.preview?.image?.url ?? null,
-        imageAlt: node.featuredMedia?.preview?.image?.altText ?? null,
-        priceRange: node.priceRangeV2,
-      })),
-    );
-
-    after = pageInfo.hasNextPage ? pageInfo.endCursor : null;
-  } while (after);
-
-  return products;
+  return {
+    totalCount: data.productsCount.count,
+    pageInfo: data.products.pageInfo,
+    products: data.products.nodes.map((node) => ({
+      id: node.id,
+      title: node.title,
+      handle: node.handle,
+      status: node.status,
+      vendor: node.vendor,
+      productType: node.productType,
+      totalInventory: node.totalInventory,
+      imageUrl: node.featuredMedia?.preview?.image?.url ?? null,
+      imageAlt: node.featuredMedia?.preview?.image?.altText ?? null,
+      priceRange: node.priceRangeV2,
+    })),
+  };
 }

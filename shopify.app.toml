@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "db628c87e4ac299fcdfa490056b32c8d"
-application_url = "https://example.com"
+application_url = "https://app-daniel-roa-649998503509.us-central1.run.app"
 embedded = true
 name = "app-daniel-roa"
 
@@ -21,7 +21,7 @@ api_version = "2026-10"
 scopes = "read_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://app-daniel-roa-649998503509.us-central1.run.app/auth/callback", "https://app-daniel-roa-649998503509.us-central1.run.app/auth/login", "https://app-daniel-roa-649998503509.us-central1.run.app/api/auth" ]
 
 [build]
 include_config_on_deploy = true
