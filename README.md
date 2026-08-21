@@ -7,7 +7,7 @@ App embebida de Shopify construida con **Shopify CLI** (template Remix, **JavaSc
 | Ruta | Descripción |
 | --- | --- |
 | `/app` | Home con un único mensaje centrado: **“¡Hola, Lobo Creaciones!”** |
-| `/app/products` | Lista **todos** los productos reales de la tienda vía **Admin GraphQL API**, con paginación por cursor, búsqueda y UI Polaris |
+| `/app/products` | Lista **todos** los productos reales de la tienda (~2.150) vía **Admin GraphQL API**, con paginación server-side por cursor, búsqueda y UI Polaris |
 
 ## Stack
 
@@ -35,7 +35,7 @@ app/
 
 ## Decisiones técnicas
 
-- **Traer todos los productos**: el loader de `/app/products` delega en `getAllProducts()`, que recorre `products(first: 100, after: $cursor)` hasta agotar `pageInfo.hasNextPage`. Así el listado es completo sin importar el tamaño del catálogo, y la capa de datos queda separada de la UI.
+- **Listado completo con paginación por cursor**: el catálogo tiene ~2.150 productos; traerlos todos en una sola carga excedería el rate-limit de la Admin API. `getProductsPage()` pagina de a 50 con cursores (`first/after`, `last/before`), busca server-side con el parámetro `query` de la conexión `products` y reporta el total real con `productsCount` — el mismo patrón del listado nativo del admin. La capa de datos (`app/services`) queda separada de la UI.
 - **Scope mínimo**: solo `read_products` — principio de menor privilegio.
 - **UI**: `IndexTable` de Polaris con imagen, estado (badge), inventario, tipo, proveedor y rango de precios formateado con `Intl.NumberFormat`; búsqueda client-side y `EmptyState` para catálogo vacío o búsqueda sin resultados.
 - **Sesiones**: la estrategia embebida de `shopify-app-remix` usa token exchange, por lo que el storage SQLite puede ser efímero en hosting free-tier sin romper la app.
@@ -55,7 +55,11 @@ npm run dev        # shopify app dev: tunnel + instalación en la tienda dev
 npm run deploy     # shopify app deploy: publica la versión de la app
 ```
 
-El servidor web corre en Render (Docker, ver `Dockerfile`) con las variables `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_APP_URL` y `SCOPES`.
+El servidor web corre en **Google Cloud Run** (build desde `Dockerfile`, escala a cero) con las variables `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_APP_URL` y `SCOPES`:
+
+```bash
+gcloud run deploy app-daniel-roa --source . --region us-central1 --allow-unauthenticated
+```
 
 ---
 
